@@ -1,114 +1,205 @@
-# autoresearch
+# autoresearch program template
 
-This is an experiment to have the LLM do its own research.
+This file is a template for the `program.md` that will live in the real
+use-case repo.
+
+Its job is to define the operating contract for the autonomous research agent:
+
+- what problem it is optimizing
+- which files are in scope
+- which files are fixed
+- which benchmark harness is authoritative
+- how one experiment is run
+- how keep/discard decisions are made
+- how results are logged for later analysis
+
+Replace every placeholder with concrete details for the workload. Do not leave
+template markers behind in the final generated file.
+
+## Mission
+
+This is an experiment to have the agent improve `<SYSTEM_OR_WORKLOAD_NAME>`.
+
+Primary objective:
+- optimize `<PRIMARY_METRIC>`
+
+Success criterion:
+- `<PRIMARY_METRIC>` should move in the desired direction (`lower is better` or `higher is better`)
+- each experiment must finish within `<TIME_BUDGET>`
+- the code must remain readable and maintainable
+
+Secondary constraints:
+- `<MEMORY_OR_COST_CONSTRAINT>`
+- `<LATENCY_OR_RUNTIME_CONSTRAINT>`
+- `<ANY_SAFETY_OR_PRODUCT_CONSTRAINT>`
+
+## Benchmark Harness
+
+All official evaluation must go through a fixed benchmark script:
+
+- benchmark script: `<BENCHMARK_SCRIPT>`
+- smoke profile command: `<SMOKE_COMMAND>`
+- measure profile command: `<MEASURE_COMMAND>`
+
+Requirements for the benchmark harness:
+
+- it stays fixed during the experiment loop
+- it runs the mutable target code as a subprocess
+- it writes raw logs to a file
+- it prints a small stable summary at the end
+- it exits non-zero on failure
+- the `measure` profile is the only source of truth for keep/discard decisions
+
+Do not evaluate changes with ad hoc commands once the benchmark harness exists.
+
+## In-Scope Files
+
+Read these files before doing any work:
+
+- `<FILE_1>`: `<why it matters>`
+- `<FILE_2>`: `<why it matters>`
+- `<FILE_3>`: `<why it matters>`
+- `<BENCHMARK_SCRIPT>`: fixed benchmark contract
+
+Mutable files:
+- `<MUTABLE_FILE_1>`
+- `<MUTABLE_FILE_2>`
+
+Fixed files:
+- `<FIXED_FILE_1>`
+- `<FIXED_FILE_2>`
+
+Never change the fixed files once the run starts unless the human explicitly
+resets the contract.
 
 ## Setup
 
-To set up a new experiment, work with the user to:
+Before starting the experiment loop:
 
-1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar5`). The branch `autoresearch/<tag>` must not already exist — this is a fresh run.
-2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
-3. **Read the in-scope files**: The repo is small. Read these files for full context:
-   - `README.md` — repository context.
-   - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
-   - `train.py` — the file you modify. Model architecture, optimizer, training loop.
-4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
-5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
-6. **Confirm and go**: Confirm setup looks good.
+1. Use a run tag based on the date or task name.
+2. Create a fresh branch: `autoresearch/<tag>`.
+3. Verify the required assets exist:
+   - `<DATA_OR_CACHE_CHECK>`
+   - `<MODEL_OR_BINARY_CHECK>`
+   - `<ENVIRONMENT_CHECK>`
+   - `<READ_THE_MUST_READ_FILES>`
+4. Run the smoke profile once to verify the benchmark harness and environment.
+5. Create `results.tsv` if it does not exist, with this header (`<CAN_MODIFY_BASED_ON_TASK>`):
 
-Once you get confirmation, kick off the experimentation.
-
-## Experimentation
-
-Each experiment runs on a single GPU. The training script runs for a **fixed time budget of 5 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `uv run train.py`.
-
-**What you CAN do:**
-- Modify `train.py` — this is the only file you edit. Everything is fair game: model architecture, optimizer, hyperparameters, training loop, batch size, model size, etc.
-
-**What you CANNOT do:**
-- Modify `prepare.py`. It is read-only. It contains the fixed evaluation, data loading, tokenizer, and training constants (time budget, sequence length, etc).
-- Install new packages or add dependencies. You can only use what's already in `pyproject.toml`.
-- Modify the evaluation harness. The `evaluate_bpb` function in `prepare.py` is the ground truth metric.
-
-**The goal is simple: get the lowest val_bpb.** Since the time budget is fixed, you don't need to worry about training time — it's always 5 minutes. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
-
-**VRAM** is a soft constraint. Some increase is acceptable for meaningful val_bpb gains, but it should not blow up dramatically.
-
-**Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.001 val_bpb improvement that adds 20 lines of hacky code? Probably not worth it. A 0.001 val_bpb improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
-
-**The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
-
-## Output format
-
-Once the script finishes it prints a summary like this:
-
-```
----
-val_bpb:          0.997900
-training_seconds: 300.1
-total_seconds:    325.9
-peak_vram_mb:     45060.2
-mfu_percent:      39.80
-total_tokens_M:   499.6
-num_steps:        953
-num_params_M:     50.3
-depth:            8
+```tsv
+commit	metric	memory	status	description
 ```
 
-Note that the script is configured to always stop after 5 minutes, so depending on the computing platform of this computer the numbers might look different. You can extract the key metric from the log file:
+6. Run the measure profile once with no code changes.
+7. Record the baseline in `results.tsv`.
+8. Confirm the setup is valid, then begin the loop.
 
+## Experiment Contract
+
+Each experiment should be one coherent idea. Avoid mixing unrelated changes.
+
+Allowed changes:
+- architecture or algorithm changes inside `<MUTABLE_FILE_1>`
+- hyperparameter or prompt adjustments inside `<MUTABLE_FILE_2>`
+- simplifications that remove complexity without harming the metric
+
+Disallowed changes:
+- changing the evaluation definition
+- changing the logging format
+- changing the time budget or stopping rule without explicit approval
+- adding complexity that cannot be justified by measurable gains
+
+Guiding principles:
+- keep experiments small enough that the outcome is attributable
+- prefer simple wins over clever hacks
+- treat crashes as signal, not as progress
+- preserve reproducibility: commit before each run and log every outcome
+- use the benchmark harness as the measurement boundary, not the mutable script
+
+## Run Commands
+
+All benchmarked experiments should go through the fixed harness.
+
+Run the smoke profile first when needed:
+
+```bash
+<SMOKE_COMMAND> > smoke.log 2>&1
 ```
-grep "^val_bpb:" run.log
+
+Official measurements use:
+
+```bash
+<MEASURE_COMMAND> > run.log 2>&1
 ```
 
-## Logging results
+After the run:
 
-When an experiment is done, log it to `results.tsv` (tab-separated, NOT comma-separated — commas break in descriptions).
-
-The TSV has a header row and 5 columns:
-
-```
-commit	val_bpb	memory_gb	status	description
+```bash
+<EXTRACT_METRIC_COMMAND>
+<EXTRACT_MEMORY_COMMAND>
 ```
 
-1. git commit hash (short, 7 chars)
-2. val_bpb achieved (e.g. 1.234567) — use 0.000000 for crashes
-3. peak memory in GB, round to .1f (e.g. 12.3 — divide peak_vram_mb by 1024) — use 0.0 for crashes
-4. status: `keep`, `discard`, or `crash`
-5. short text description of what this experiment tried
+If the run crashes:
+
+```bash
+tail -n 50 run.log
+```
+
+## Result Format
+
+Append one tab-separated row to `results.tsv` for every experiment:
+
+```tsv
+commit	metric	memory	status	description
+```
+
+Field meanings:
+- `commit`: short git hash
+- `metric`: numeric result, or a sentinel value on crash
+- `memory`: peak resource use in a single comparable unit
+- `status`: `keep`, `discard`, or `crash`
+- `description`: one-line summary of the idea being tested
+
+Optional extra columns are allowed if the workload needs them, but keep the
+schema stable once the run starts.
 
 Example:
 
+```tsv
+commit	metric	memory	status	description
+a1b2c3d	0.123456	12.3	keep	baseline
+b2c3d4e	0.120100	12.8	keep	increase context mixing depth
+c3d4e5f	0.125900	12.2	discard	switch scheduler
+d4e5f6g	0.000000	0.0	crash	double hidden width caused OOM
 ```
-commit	val_bpb	memory_gb	status	description
-a1b2c3d	0.997900	44.0	keep	baseline
-b2c3d4e	0.993200	44.2	keep	increase LR to 0.04
-c3d4e5f	1.005000	44.0	discard	switch to GeLU activation
-d4e5f6g	0.000000	0.0	crash	double model width (OOM)
-```
 
-## The experiment loop
+## Keep/Discard Rule
 
-The experiment runs on a dedicated branch (e.g. `autoresearch/mar5` or `autoresearch/mar5-gpu0`).
+Keep a change only if:
+- the run completed successfully
+- the metric improved according to the optimization direction
+- the complexity cost is justified
+- `<ANY_OTHER_CORRECTNESS_CHECK>`
 
-LOOP FOREVER:
+Discard a change if:
+- the metric regressed
+- the gain is too small relative to the added complexity
+- the run became unstable or materially more expensive without enough benefit
+- `<ANY_OTHER_CORRECTNESS_CHECK>`
 
-1. Look at the git state: the current branch/commit we're on
-2. Tune `train.py` with an experimental idea by directly hacking the code.
-3. git commit
-4. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
-5. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
-6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
-7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
-8. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
-9. If val_bpb is equal or worse, you git reset back to where you started
+## Loop
 
-The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
+Once the loop begins, continue until interrupted:
 
-**Timeout**: Each experiment should take ~5 minutes total (+ a few seconds for startup and eval overhead). If a run exceeds 10 minutes, kill it and treat it as a failure (discard and revert).
+1. Inspect the current git state.
+2. Choose one next experiment.
+3. Edit only the mutable files.
+4. Commit the change.
+5. Run the smoke profile if the change is risky or likely to crash.
+6. Run the measure profile and capture logs.
+7. Extract the metric and resource usage from the benchmark summary.
+8. Log the result to `results.tsv`.
+9. Keep the commit if it wins; otherwise revert to the last kept commit. In the commit history, only accepted commits should remain.
+10. Move to the next idea immediately.
 
-**Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
-
-**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses, try more radical architectural changes. The loop runs until the human interrupts you, period.
-
-As an example use case, a user might leave you running while they sleep. If each experiment takes you ~5 minutes then you can run approx 12/hour, for a total of about 100 over the duration of the average human sleep. The user then wakes up to experimental results, all completed by you while they slept!
+Do not pause to ask whether to continue once autonomous execution has started.
