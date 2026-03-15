@@ -90,7 +90,7 @@ Use these specs:
 - Time budget: <budget>
 - Environment/assets: <details>
 
-Do NOT start the experiment loop until the benchmark harness, program.md, and analysis.py are all in place and consistent.
+Do NOT start the experiment loop until the benchmark harness, program.md, and analysis.py are all in place and I've checked those and given you permission to proceed.
 ```
 
 ## Running The Agent
@@ -98,5 +98,5 @@ Do NOT start the experiment loop until the benchmark harness, program.md, and an
 Once the generated files exist in the real repo, you can start the run with a prompt like:
 
 ```text
-Read program.md and do the setup first. Establish the baseline, create results.tsv if needed, and only then begin the experiment loop.
+Hi, take a look at program.md and let's kick off a new experiment! Let's do the setup first.
 ```
