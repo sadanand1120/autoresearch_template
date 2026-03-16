@@ -14,6 +14,11 @@ This template is meant to consume the stable `results.tsv` schema defined by
 the generated `program.md`. If your benchmark harness has both `smoke` and
 `measure` profiles, this script should analyze the official measure rows unless
 you intentionally choose a different convention.
+
+If the run also maintains a `hypothesis.md` file, treat that as a living
+qualitative backlog with sections such as `Active Hypotheses` and `Out Of Scope
+Issues For Human`. This script should stay focused on structured experiment
+outcomes from `results.tsv`.
 """
 
 from pathlib import Path

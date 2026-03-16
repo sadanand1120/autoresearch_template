@@ -7,11 +7,14 @@ The intended flow is:
 1. The human reads this `README.md`.
 2. The human points a coding agent at this repo and at their real use-case repo.
 3. The agent reads `program.md` and `analysis.py` here as templates.
-4. The agent writes three use-case-specific artifacts inside the real repo:
+4. The agent writes four use-case-specific artifacts inside the real repo:
    - a `program.md`
    - an `analysis.py`
    - a fixed benchmark harness script
-5. The agent then uses the generated `program.md` to run the autoresearch loop in the real repo.
+   - an initial `hypothesis.md` seeded from an initial repo scan
+5. The human reviews those generated artifacts and decides whether the run should proceed.
+6. Only after that, the agent uses the generated `program.md` to do setup and run the autoresearch loop in the real repo.
+7. During that later setup phase, the generated contract can create `results.tsv`, record the baseline, refresh `hypothesis.md`, and create any other run-state files it requires.
 
 `program.md` is the template for the experiment contract.
 
@@ -47,8 +50,11 @@ In your real repo, the agent should create or update:
 - `program.md`: the concrete autoresearch contract for this workload
 - `analysis.py`: a passive script that reads `results.tsv`, prints summaries, and saves plots
 - `benchmark_<task>.py` or equivalent: a fixed benchmark harness that all experiments run through
+- `hypothesis.md`: an initial backlog of promising ideas from the first repo scan, plus an `Out Of Scope Issues For Human` section
 
 Do not let the agent start experimenting before these artifacts are in place and coherent.
+
+`results.tsv` is not part of this initial artifact-generation step. It is a run-state file that the generated `program.md` should create later during setup.
 
 ## Benchmark Harness Requirements
 
@@ -77,6 +83,7 @@ Then, in this repo, create:
 - a use-case-specific program.md
 - a passive analysis.py
 - a fixed benchmark harness script with smoke and measure profiles
+- an initial hypothesis.md seeded from your first repo scan
 
 Use these specs:
 - Goal: <goal>
@@ -90,7 +97,11 @@ Use these specs:
 - Time budget: <budget>
 - Environment/assets: <details>
 
-Do NOT start the experiment loop until the benchmark harness, program.md, and analysis.py are all in place and I've checked those and given you permission to proceed.
+Do NOT start the experiment loop until the benchmark harness, program.md, analysis.py, and hypothesis.md are all in place and I've checked those and given you permission to proceed.
+
+During this initial artifact-generation phase, scan the repo deeply and write the initial promising optimization ideas into hypothesis.md.
+
+Do NOT create `results.tsv` yet if you are still in this initial artifact-generation phase. That should be created later during setup, as defined by the generated `program.md`.
 ```
 
 ## Running The Agent

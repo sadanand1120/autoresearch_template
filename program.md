@@ -12,6 +12,7 @@ Its job is to define the operating contract for the autonomous research agent:
 - how one experiment is run
 - how keep/discard decisions are made
 - how results are logged for later analysis
+- where deferred ideas and out-of-scope findings should be recorded
 
 Replace every placeholder with concrete details for the workload. Do not leave
 template markers behind in the final generated file.
@@ -69,6 +70,9 @@ Fixed files:
 - `<FIXED_FILE_1>`
 - `<FIXED_FILE_2>`
 
+Auxiliary notes file:
+- `hypothesis.md`: a living backlog of active hypotheses plus a separate `Out Of Scope Issues For Human` section
+
 Never change the fixed files once the run starts unless the human explicitly
 resets the contract.
 
@@ -83,16 +87,25 @@ Before starting the experiment loop:
    - `<MODEL_OR_BINARY_CHECK>`
    - `<ENVIRONMENT_CHECK>`
    - `<READ_THE_MUST_READ_FILES>`
-4. Run the smoke profile once to verify the benchmark harness and environment.
-5. Create `results.tsv` if it does not exist, with this header (`<CAN_MODIFY_BASED_ON_TASK>`):
+4. Review `hypothesis.md`. By this point it should already exist from the artifact-generation phase and contain these section headers:
+
+```md
+# Active Hypotheses
+
+# Out Of Scope Issues For Human
+```
+
+5. Refresh `# Active Hypotheses` based on anything new learned during setup validation. Remove stale ideas before running any baseline.
+6. Run the smoke profile once to verify the benchmark harness and environment.
+7. Create `results.tsv` if it does not exist, with this header (`<CAN_MODIFY_BASED_ON_TASK>`):
 
 ```tsv
 commit	metric	memory	status	description
 ```
 
-6. Run the measure profile once with no code changes.
-7. Record the baseline in `results.tsv`.
-8. Confirm the setup is valid, then begin the loop.
+8. Run the measure profile once with no code changes.
+9. Record the baseline in `results.tsv`.
+10. Confirm the setup is valid, then begin the loop.
 
 ## Experiment Contract
 
@@ -115,6 +128,9 @@ Guiding principles:
 - treat crashes as signal, not as progress
 - preserve reproducibility: commit before each run and log every outcome
 - use the benchmark harness as the measurement boundary, not the mutable script
+- use `hypothesis.md` as a living backlog, not as a dump of stale notes
+- when you notice promising ideas you cannot pursue yet, record them in `# Active Hypotheses`
+- when you discover an important change that is likely valuable but outside your allowed scope, record it under `# Out Of Scope Issues For Human`
 
 ## Run Commands
 
@@ -173,6 +189,41 @@ c3d4e5f	0.125900	12.2	discard	switch scheduler
 d4e5f6g	0.000000	0.0	crash	double hidden width caused OOM
 ```
 
+`results.tsv` is for actual experiment outcomes only. Do not mix speculative notes into it.
+
+## Hypotheses File
+
+Maintain `hypothesis.md` as a lightweight living backlog with these two sections:
+
+- `# Active Hypotheses`
+- `# Out Of Scope Issues For Human`
+
+`# Active Hypotheses` is for things like:
+
+- follow-up hypotheses worth testing later
+- ideas generated during the initial repo scan or later setup work
+- ideas blocked by sequencing, time, or local priority
+- new follow-ups created by recent experiment outcomes
+
+`# Out Of Scope Issues For Human` is for things like:
+
+- changes that would likely help but violate the current scope boundary
+- architectural or product issues that need human judgment
+- bugs or code smells that matter but are not part of the current experiment contract
+
+Keep entries short and concrete. Update the file continuously:
+
+- remove ideas once they have been tested
+- add new follow-ups when experiments create them
+- do not let stale, already-resolved ideas accumulate
+
+A good entry usually includes:
+
+- the date or commit context (if applicable)
+- the idea or issue
+- why it matters
+- why it was deferred (if applicable)
+
 ## Keep/Discard Rule
 
 Keep a change only if:
@@ -199,7 +250,11 @@ Once the loop begins, continue until interrupted:
 6. Run the measure profile and capture logs.
 7. Extract the metric and resource usage from the benchmark summary.
 8. Log the result to `results.tsv`.
-9. Keep the commit if it wins; otherwise revert to the last kept commit. In the commit history, only accepted commits should remain.
-10. Move to the next idea immediately.
+9. Update `hypothesis.md`:
+   - remove ideas that were just tested
+   - add new follow-up hypotheses created by the result
+   - add any clearly promising but off-scope changes under `# Out Of Scope Issues For Human`
+10. Keep the commit if it wins; otherwise revert to the last kept commit. In the commit history, only accepted commits should remain.
+11. Move to the next idea immediately.
 
 Do not pause to ask whether to continue once autonomous execution has started.
